@@ -57,8 +57,8 @@ async def _listen(symbols: List[str]) -> None:
                             qty = float(item.get("sz", 0))
                             ts = float(item.get("ts", 0)) / 1000.0 if item.get("ts") else time.time()
                             await handle_trade("okx", symbol, price, qty, ts)
-        except Exception:
-            logger.info("okx reconnexion...")
+        except Exception as e:
+            logger.exception("okx erreur: %s", e)
             await asyncio.sleep(2)
 
 

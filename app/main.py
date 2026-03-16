@@ -48,6 +48,7 @@ async def startup() -> None:
     """Charge l'etat persiste et lance les taches de fond."""
     await load_state()
     logger.info("etat charge")
+    # Ces taches tournent en continu pendant toute la vie du serveur.
     asyncio.create_task(kline_tick_loop())
     asyncio.create_task(binance.run(list(SETTINGS.symbols)))
     asyncio.create_task(okx.run(list(SETTINGS.symbols)))
@@ -80,6 +81,8 @@ async def login(req: LoginRequest) -> TokenResponse:
 @app.get("/info", response_model=InfoResponse)
 async def info() -> InfoResponse:
     """Retourne les actifs et paires disponibles."""
+    # Les actifs sont derives des paires configurees pour eviter de maintenir
+    # une deuxieme liste separee.
     assets = sorted({split_symbol(sym)[0] for sym in SETTINGS.symbols} | {split_symbol(sym)[1] for sym in SETTINGS.symbols})
     return InfoResponse(assets=assets, pairs=list(SETTINGS.symbols))
 
@@ -137,6 +140,7 @@ async def balance(username: str = Depends(_get_current_user)) -> BalanceResponse
     balances: List[Balance] = []
     assets = sorted({split_symbol(sym)[0] for sym in SETTINGS.symbols} | {split_symbol(sym)[1] for sym in SETTINGS.symbols})
     for asset in assets:
+        # On renvoie aussi les actifs absents du portefeuille avec un solde nul.
         bal = user_bal.get(asset, Balance())
         balances.append({"asset": asset, "total": bal.total, "available": bal.available})
     return BalanceResponse(balances=balances)
@@ -148,6 +152,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     conn = None
     try:
+        # Le premier message doit toujours etre l'authentification.
         auth_msg = await websocket.receive_json()
         if auth_msg.get("action") != "auth":
             await websocket.close(code=1008)
@@ -166,6 +171,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
             msg = await websocket.receive_json()
             action = msg.get("action")
             if action == "subscribe":
+                # La souscription est memorisee puis filtree au moment de la diffusion.
                 sub = Subscription(
                     stream=msg.get("stream"),
                     symbol=msg.get("symbol"),
@@ -178,6 +184,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
             elif action == "unsubscribe":
                 stream = msg.get("stream")
                 symbol = msg.get("symbol")
+                # On supprime les souscriptions correspondant a ce couple stream/symbol.
                 conn.subs = [s for s in conn.subs if not (s.stream == stream and s.symbol == symbol)]
                 await websocket.send_json({"type": "unsubscribed", "stream": stream, "symbol": symbol})
             else:

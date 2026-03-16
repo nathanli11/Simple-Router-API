@@ -47,6 +47,8 @@ async def handle_best_touch(exchange: str, symbol: str, bid: float, ask: float, 
         best_bid_exchange = None
         best_ask = None
         best_ask_exchange = None
+        # On agrege ici les cotations recues de chaque exchange pour obtenir
+        # le meilleur bid et le meilleur ask globaux sur le symbole.
         for ex, st in per_symbol.items():
             if st.best_bid is not None and (best_bid is None or st.best_bid > best_bid):
                 best_bid = st.best_bid
@@ -55,6 +57,8 @@ async def handle_best_touch(exchange: str, symbol: str, bid: float, ask: float, 
                 best_ask = st.best_ask
                 best_ask_exchange = ex
 
+    # La diffusion WebSocket et la logique d'execution restent hors du lock
+    # pour eviter de bloquer l'etat partage plus longtemps que necessaire.
     await WS_HUB.broadcast_best_touch(symbol, best_bid, best_ask, best_bid_exchange, best_ask_exchange)
     await execute_on_best_touch(symbol, best_bid, best_ask)
 
@@ -64,6 +68,7 @@ async def handle_trade(exchange: str, symbol: str, price: float, qty: float, ts:
     async with STATE.lock:
         STATE.last_trade.setdefault(symbol, {})[exchange] = price
 
+    # Un trade alimente a la fois le flux brut et les indicateurs derives.
     await WS_HUB.broadcast_trade(symbol, exchange, price, qty, ts)
     await _update_kline(symbol, exchange, price, qty, ts)
     await _update_kline(symbol, "all", price, qty, ts)
@@ -80,9 +85,12 @@ async def _update_kline(symbol: str, exchange: str, price: float, qty: float, ts
             end = start + interval
             candle = _KLINES.get(key)
             if candle is None or ts >= candle.end:
+                # On ouvre une nouvelle bougie si aucune n'existe encore
+                # ou si l'ancienne fenetre temporelle est terminee.
                 candle = Candle(start=start, end=end, open=price, high=price, low=price, close=price, volume=qty)
                 _KLINES[key] = candle
             else:
+                # Sinon on met simplement a jour la bougie en cours.
                 candle.high = max(candle.high, price)
                 candle.low = min(candle.low, price)
                 candle.close = price
@@ -99,6 +107,8 @@ async def kline_tick_loop() -> None:
         async with _KLINES_LOCK:
             for (symbol, exchange, interval), candle in list(_KLINES.items()):
                 if now >= candle.end:
+                    # Sans nouveau trade, on cree une bougie "plate" pour garder
+                    # une serie temporelle continue cote client.
                     new_start = candle.end
                     new_end = new_start + interval
                     _KLINES[(symbol, exchange, interval)] = Candle(

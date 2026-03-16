@@ -18,6 +18,7 @@ def _reserve_for_order(username: str, side: str, symbol: str, price: float, qty:
     """Reserve les fonds pour un ordre limite."""
     base, quote = split_symbol(symbol)
     if side == "buy":
+        # Pour un achat, on bloque le montant maximal en devise de cotation.
         cost = price * qty
         bal = _get_balance(username, quote)
         if bal.available < cost:
@@ -25,6 +26,7 @@ def _reserve_for_order(username: str, side: str, symbol: str, price: float, qty:
         bal.available -= cost
         return True, cost, ""
     else:
+        # Pour une vente, on bloque directement la quantite d'actif vendue.
         bal = _get_balance(username, base)
         if bal.available < qty:
             return False, 0.0, f"insufficient {base} balance"
@@ -53,7 +55,7 @@ def _apply_fill(username: str, side: str, symbol: str, price: float, qty: float,
         quote_bal.total -= cost
         base_bal.total += qty
         base_bal.available += qty
-        # release any extra reserved due to better price
+        # Si l'execution se fait a meilleur prix que prevu, on rend l'excedent reserve.
         if reserved > cost:
             quote_bal.available += (reserved - cost)
     else:
@@ -79,6 +81,8 @@ async def place_order(username: str, token_id: str, symbol: str, side: str, pric
         if token_id in STATE.orders:
             return False, None, "token_id already exists"
 
+        # La reservation est faite avant la creation de l'ordre pour garantir
+        # que le compte reste coherent meme en cas de requetes concurrentes.
         ok, reserved, reason = _reserve_for_order(username, side, symbol, price, qty)
         if not ok:
             return False, None, reason
@@ -112,6 +116,7 @@ async def cancel_order(username: str, token_id: str) -> Tuple[bool, str]:
         order.status = "cancelled"
         _release_reserve(username, order.side, order.symbol, order.reserved_amount)
         if order.symbol in STATE.open_orders_by_symbol:
+            # On retire uniquement l'ordre annule de la file des ordres ouverts.
             STATE.open_orders_by_symbol[order.symbol] = [
                 tid for tid in STATE.open_orders_by_symbol[order.symbol] if tid != token_id
             ]
@@ -134,6 +139,7 @@ async def execute_on_best_touch(symbol: str, best_bid: Optional[float], best_ask
     if best_bid is None and best_ask is None:
         return
     async with STATE.lock:
+        # Copie defensive pour iterer sans garder le verrou pendant toute la boucle.
         order_ids = list(STATE.open_orders_by_symbol.get(symbol, []))
 
     for token_id in order_ids:
@@ -142,6 +148,7 @@ async def execute_on_best_touch(symbol: str, best_bid: Optional[float], best_ask
             if not order or order.status != "open":
                 continue
             fill_price = None
+            # Un buy se remplit sur le meilleur ask, un sell sur le meilleur bid.
             if order.side == "buy" and best_ask is not None and best_ask <= order.price:
                 fill_price = best_ask
             if order.side == "sell" and best_bid is not None and best_bid >= order.price:

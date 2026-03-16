@@ -43,9 +43,9 @@ async def _listen_book_ticker(symbols: List[str]) -> None:
                     ask = float(payload.get("a", 0))
                     ts = time.time()
                     await handle_best_touch("binance", symbol, bid, ask, ts)
-        except Exception:
-            logger.info("binance bookTicker reconnexion...")
-            await asyncio.sleep(2)
+        except Exception as e:
+                logger.exception("binance bookTicker erreur: %s", e)
+                await asyncio.sleep(2)
 
 
 async def _listen_trades(symbols: List[str]) -> None:
@@ -65,8 +65,8 @@ async def _listen_trades(symbols: List[str]) -> None:
                     qty = float(payload.get("q", 0))
                     ts = payload.get("T", 0) / 1000.0
                     await handle_trade("binance", symbol, price, qty, ts)
-        except Exception:
-            logger.info("binance trade reconnexion...")
+        except Exception as e:
+            logger.exception("binance trade erreur: %s", e)
             await asyncio.sleep(2)
 
 

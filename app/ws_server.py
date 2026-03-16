@@ -98,6 +98,7 @@ class WSHub:
     async def update_ewma_on_trade(self, symbol: str, exchange: str, price: float, ts: float) -> None:
         """Met a jour l'EWMA pour les souscriptions correspondantes."""
         async with self._lock:
+            # Snapshot defensif pour eviter d'iterer sur une liste modifiee en parallele.
             conns = list(self._connections)
         for conn in conns:
             for sub in conn.subs:
@@ -112,10 +113,12 @@ class WSHub:
                 key = (symbol, sub.exchange, sub.half_life)
                 state = conn.ewma_state.setdefault(key, EwmaState())
                 if state.value is None:
+                    # Premier point de la serie : on initialise l'EWMA au prix courant.
                     state.value = price
                     state.last_ts = ts
                 else:
                     dt = max(0.0, ts - (state.last_ts or ts))
+                    # La demi-vie donnee par le client est convertie en coefficient de lissage.
                     alpha = 1 - math.exp(-math.log(2) * dt / sub.half_life) if sub.half_life > 0 else 1.0
                     state.value = (1 - alpha) * state.value + alpha * price
                     state.last_ts = ts
@@ -135,6 +138,8 @@ class WSHub:
             conns = list(self._connections)
         for conn in conns:
             for sub in conn.subs:
+                # Les filtres sont appliques explicitement pour garder une logique
+                # simple a relire et a debugger.
                 if sub.stream != stream:
                     continue
                 if sub.symbol != symbol:
