@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import json
+import logging
+import ssl
 import time
 from typing import List
 
 import websockets
 
+from ..config import build_ssl_context
 from ..market import handle_best_touch, handle_trade
 
 
 OKX_WS = "wss://ws.okx.com:8443/ws/v5/public"
 logger = logging.getLogger(__name__)
+SSL_CONTEXT = build_ssl_context()
 
 
 def _okx_symbol(symbol: str) -> str:
@@ -36,7 +39,12 @@ async def _listen(symbols: List[str]) -> None:
 
     while True:
         try:
-            async with websockets.connect(OKX_WS, ping_interval=20, ping_timeout=20) as ws:
+            async with websockets.connect(
+                OKX_WS,
+                ping_interval=20,
+                ping_timeout=20,
+                ssl=SSL_CONTEXT,
+            ) as ws:
                 logger.info("okx connecte")
                 await ws.send(json.dumps({"op": "subscribe", "args": args}))
                 async for msg in ws:
@@ -57,8 +65,11 @@ async def _listen(symbols: List[str]) -> None:
                             qty = float(item.get("sz", 0))
                             ts = float(item.get("ts", 0)) / 1000.0 if item.get("ts") else time.time()
                             await handle_trade("okx", symbol, price, qty, ts)
+        except ssl.SSLError as e:
+            logger.exception("okx erreur SSL: %s", e)
+            await asyncio.sleep(2)
         except Exception as e:
-            logger.exception("okx erreur: %s", e)
+            logger.exception("okx erreur reseau/websocket: %s", e)
             await asyncio.sleep(2)
 
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import ssl
 from dataclasses import dataclass
 from typing import List
 
@@ -23,9 +25,21 @@ class Settings:
     kline_intervals_seconds: List[int] = (1, 10, 60, 300)
 
     storage_path: str = "data/state.json"
+    allow_insecure_ssl: bool = os.getenv("ALLOW_INSECURE_SSL", "false").lower() in {"1", "true", "yes", "on"}
 
 
 SETTINGS = Settings()
+
+
+def build_ssl_context() -> ssl.SSLContext:
+    """Construit le contexte SSL pour les connexions sortantes."""
+    context = ssl.create_default_context()
+    if SETTINGS.allow_insecure_ssl:
+        # Reserve au developpement local quand un proxy reseau casse la chaine TLS.
+        # En production, la verification SSL doit rester active.
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    return context
 
 
 def split_symbol(symbol: str) -> tuple[str, str]:

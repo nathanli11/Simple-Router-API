@@ -48,6 +48,7 @@ async def startup() -> None:
     """Charge l'etat persiste et lance les taches de fond."""
     await load_state()
     logger.info("etat charge")
+    logger.info("verification SSL sortante active=%s", not SETTINGS.allow_insecure_ssl)
     # Ces taches tournent en continu pendant toute la vie du serveur.
     asyncio.create_task(kline_tick_loop())
     asyncio.create_task(binance.run(list(SETTINGS.symbols)))
