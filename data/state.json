@@ -1,0 +1,65 @@
+{
+  "users": {
+    "demo_user": {
+      "password_hash": "SsogUnIOPvnLOeMKulkXGj/lqvfkucA+FFR6DkPh3duwn8xx99JcIykaZCHYxbRG"
+    },
+    "Milos": {
+      "password_hash": "KIEYIxDdfwlIdCL57zAi61jX9/d2yVGcMlVBKzHeu4Bqs+YaWdjwpZ295QLyUuJk"
+    }
+  },
+  "balances": {
+    "demo_user": {
+      "USDT": {
+        "total": 10000.0,
+        "available": 9000.0
+      },
+      "BTC": {
+        "total": 1.0,
+        "available": 1.0
+      }
+    },
+    "Milos": {
+      "USDT": {
+        "total": 1000.0,
+        "available": 1000.0
+      },
+      "BTC": {
+        "total": 1000.0,
+        "available": 1000.0
+      }
+    }
+  },
+  "orders": {
+    "ord-1773739048": {
+      "token_id": "ord-1773739048",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 10000.0,
+      "quantity": 0.1,
+      "status": "cancelled",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 1000.0,
+      "created_at": 1773739048.484268
+    },
+    "ord-1773739048-2": {
+      "token_id": "ord-1773739048-2",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 10000.0,
+      "quantity": 0.1,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 1000.0,
+      "created_at": 1773739048.5448503
+    }
+  },
+  "open_orders_by_symbol": {
+    "BTCUSDT": [
+      "ord-1773739048-2"
+    ]
+  }
+}
