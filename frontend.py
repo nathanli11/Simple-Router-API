@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.graph_objects as go
 import json
-import threading
 import time
 from datetime import datetime
 from websocket import create_connection, WebSocketException
@@ -163,16 +163,11 @@ else:
     ws_duration = st.slider("Listen duration (seconds)", min_value=5, max_value=120, value=30, step=5)
 
     if st.button("▶️ Start Live Stream", type="primary"):
-        kline_placeholder = st.empty()
-        trade_placeholder = st.empty()
-        touch_placeholder = st.empty()
-        status_placeholder = st.empty()
+        progress_bar = st.progress(0, text="⏳ Connecting to WebSocket...")
 
         klines = []
         trades = []
-        touches = []
-
-        status_placeholder.info(f"⏳ Connecting to WebSocket for {ws_duration}s...")
+        last_touch = None
 
         try:
             ws = create_connection(WS_URL, timeout=5)
@@ -193,12 +188,16 @@ else:
                 for _ in range(3):
                     ws.recv()
 
-                status_placeholder.success(f"🟢 Connected! Listening on **{ws_symbol}** ({ws_exchange}) for {ws_duration}s...")
-
                 ws.settimeout(1.0)
-                end_time = time.time() + ws_duration
+                start_time = time.time()
+                end_time = start_time + ws_duration
 
                 while time.time() < end_time:
+                    elapsed = time.time() - start_time
+                    pct = min(elapsed / ws_duration, 1.0)
+                    remaining = max(0, int(ws_duration - elapsed))
+                    progress_bar.progress(pct, text=f"🟢 Listening... {remaining}s remaining  |  {len(klines)} klines · {len(trades)} trades")
+
                     try:
                         raw = ws.recv()
                         msg = json.loads(raw)
@@ -216,11 +215,6 @@ else:
                                 "Volume": round(d.get("volume", 0), 6),
                                 "Exchange": d.get("exchange", ""),
                             })
-                            df_k = pd.DataFrame(klines)
-                            df_k.index = df_k.index + 1
-                            df_k.index.name = "#"
-                            kline_placeholder.subheader("🕯️ Klines")
-                            kline_placeholder.dataframe(df_k, width="stretch")
 
                         elif msg_type == "trades":
                             ts_str = datetime.fromtimestamp(d.get("timestamp", 0)).strftime("%H:%M:%S")
@@ -230,26 +224,15 @@ else:
                                 "Qty": round(d.get("quantity", 0), 6),
                                 "Exchange": d.get("exchange", ""),
                             })
-                            # Keep last 50 trades
-                            if len(trades) > 50:
-                                trades = trades[-50:]
-                            df_t = pd.DataFrame(trades)
-                            df_t.index = df_t.index + 1
-                            df_t.index.name = "#"
-                            trade_placeholder.subheader("📊 Trades")
-                            trade_placeholder.dataframe(df_t, width="stretch")
 
                         elif msg_type == "best_touch":
-                            touches = [{
+                            last_touch = {
                                 "Symbol": d.get("symbol"),
                                 "Best Bid": d.get("best_bid"),
                                 "Bid Exchange": d.get("best_bid_exchange", ""),
                                 "Best Ask": d.get("best_ask"),
                                 "Ask Exchange": d.get("best_ask_exchange", ""),
-                            }]
-                            df_bt = pd.DataFrame(touches)
-                            touch_placeholder.subheader("💹 Best Touch")
-                            touch_placeholder.dataframe(df_bt, width="stretch")
+                            }
 
                     except WebSocketException:
                         continue
@@ -257,7 +240,47 @@ else:
                         continue
 
                 ws.close()
-                status_placeholder.success(f"✅ Stream ended after {ws_duration}s — received {len(klines)} klines, {len(trades)} trades.")
+                progress_bar.empty()
+
+                # ---- Display results once ----
+                st.success(f"✅ Stream ended — {len(klines)} klines, {len(trades)} trades collected in {ws_duration}s.")
+
+                if last_touch:
+                    st.subheader("💹 Last Best Touch")
+                    st.dataframe(pd.DataFrame([last_touch]), width="stretch", hide_index=True)
+
+                if klines:
+                    st.subheader(f"🕯️ Klines ({len(klines)})")
+                    df_k = pd.DataFrame(klines)
+
+                    fig = go.Figure(data=[go.Candlestick(
+                        x=df_k["Time"],
+                        open=df_k["Open"],
+                        high=df_k["High"],
+                        low=df_k["Low"],
+                        close=df_k["Close"],
+                        increasing_line_color="#26a69a",
+                        decreasing_line_color="#ef5350",
+                    )])
+                    fig.update_layout(
+                        title=f"{ws_symbol} — {ws_interval} candles ({ws_exchange})",
+                        yaxis_title="Price",
+                        xaxis_title="Time",
+                        template="plotly_dark",
+                        xaxis_rangeslider_visible=False,
+                        height=500,
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                if trades:
+                    st.subheader(f"📊 Trades ({len(trades)})")
+                    df_t = pd.DataFrame(trades[-100:])
+                    df_t.index = range(max(1, len(trades) - 99), len(trades) + 1)
+                    df_t.index.name = "#"
+                    st.dataframe(df_t, width="stretch")
+
+                if not klines and not trades and not last_touch:
+                    st.warning("No data received. The exchanges may not be sending data right now.")
 
         except Exception as e:
             st.error(f"❌ WebSocket connection failed: {e}")
