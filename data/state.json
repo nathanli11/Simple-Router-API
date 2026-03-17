@@ -5,6 +5,9 @@
     },
     "Milos": {
       "password_hash": "KIEYIxDdfwlIdCL57zAi61jX9/d2yVGcMlVBKzHeu4Bqs+YaWdjwpZ295QLyUuJk"
+    },
+    "milos": {
+      "password_hash": "ZS8NQfuBY298L774SLUOixjTYl+8zVBLi/aSJlIuBLlNdLEgnN+0N6kWkfTejN10"
     }
   },
   "balances": {
@@ -26,6 +29,20 @@
       "BTC": {
         "total": 1000.0,
         "available": 1000.0
+      }
+    },
+    "milos": {
+      "USDT": {
+        "total": 225856.9,
+        "available": 165857.18
+      },
+      "BTC": {
+        "total": 0.0,
+        "available": 0.0
+      },
+      "ETH": {
+        "total": 30.0,
+        "available": 30.0
       }
     }
   },
@@ -55,11 +72,78 @@
       "reason": null,
       "reserved_amount": 1000.0,
       "created_at": 1773739048.5448503
+    },
+    "ord-1773741601": {
+      "token_id": "ord-1773741601",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 30000.0,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73928.0,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741601.9232454
+    },
+    "ord-1773741646": {
+      "token_id": "ord-1773741646",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 29999.86,
+      "created_at": 1773741646.5429454
+    },
+    "ord-1773741789": {
+      "token_id": "ord-1773741789",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 29999.86,
+      "created_at": 1773741789.463731
+    },
+    "ord-1773741814": {
+      "token_id": "ord-1773741814",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73928.0,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741814.9433558
+    },
+    "ord-1773741823": {
+      "token_id": "ord-1773741823",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73950.9,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741823.5808265
     }
   },
   "open_orders_by_symbol": {
     "BTCUSDT": [
-      "ord-1773739048-2"
+      "ord-1773739048-2",
+      "ord-1773741646",
+      "ord-1773741789"
     ]
   }
 }
