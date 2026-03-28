@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
 class RegisterRequest(BaseModel):
-    username: str = Field(..., min_length=3)
-    password: str = Field(..., min_length=6)
+    username: str = Field(..., min_length=3, description="Nom d'utilisateur (3 caractères min)")
+    password: str = Field(..., min_length=6, description="Mot de passe (6 caractères min)")
 
 
 class LoginRequest(BaseModel):
@@ -21,22 +25,42 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class DepositRequest(BaseModel):
-    asset: str
-    amount: float = Field(..., gt=0)
+# ---------------------------------------------------------------------------
+# Deposit
+# ---------------------------------------------------------------------------
 
+class DepositRequest(BaseModel):
+    asset: str = Field(..., description="Actif à créditer (ex: USDT, BTC)")
+    amount: float = Field(..., gt=0, description="Montant à déposer (doit être > 0)")
+
+
+# ---------------------------------------------------------------------------
+# Orders
+# ---------------------------------------------------------------------------
 
 class OrderSide(str, Enum):
     buy = "buy"
     sell = "sell"
 
 
+class OrderType(str, Enum):
+    limit = "limit"
+    market = "market"
+
+
 class OrderRequest(BaseModel):
-    token_id: str = Field(..., min_length=3)
-    symbol: str
-    side: OrderSide
-    price: float = Field(..., gt=0)
-    quantity: float = Field(..., gt=0)
+    token_id: str = Field(..., min_length=3, description="Identifiant unique de l'ordre (fourni par le client)")
+    symbol: str = Field(..., description="Paire de trading (ex: BTCUSDT)")
+    side: OrderSide = Field(..., description="Sens de l'ordre : buy ou sell")
+    price: float = Field(..., gt=0, description="Prix limite (ignoré pour les ordres market)")
+    quantity: float = Field(..., gt=0, description="Quantité à trader")
+    order_type: OrderType = Field(OrderType.limit, description="Type d'ordre : limit (défaut) ou market")
+
+
+class OrderModifyRequest(BaseModel):
+    """Corps pour PUT /orders/{token_id} – au moins un champ requis."""
+    price: Optional[float] = Field(None, gt=0, description="Nouveau prix limite")
+    quantity: Optional[float] = Field(None, gt=0, description="Nouvelle quantité")
 
 
 class OrderStatus(str, Enum):
@@ -49,22 +73,8 @@ class OrderStatus(str, Enum):
 class OrderResponse(BaseModel):
     token_id: str
     status: OrderStatus
+    filled_price: Optional[float] = None
     reason: Optional[str] = None
-
-
-class BalanceLine(BaseModel):
-    asset: str
-    total: float
-    available: float
-
-
-class BalanceResponse(BaseModel):
-    balances: List[BalanceLine]
-
-
-class InfoResponse(BaseModel):
-    assets: List[str]
-    pairs: List[str]
 
 
 class OrderStatusResponse(BaseModel):
@@ -77,6 +87,33 @@ class OrderStatusResponse(BaseModel):
     filled_price: Optional[float] = None
     reason: Optional[str] = None
 
+
+# ---------------------------------------------------------------------------
+# Balance
+# ---------------------------------------------------------------------------
+
+class BalanceLine(BaseModel):
+    asset: str
+    total: float
+    available: float
+
+
+class BalanceResponse(BaseModel):
+    balances: List[BalanceLine]
+
+
+# ---------------------------------------------------------------------------
+# Info
+# ---------------------------------------------------------------------------
+
+class InfoResponse(BaseModel):
+    assets: List[str]
+    pairs: List[str]
+
+
+# ---------------------------------------------------------------------------
+# WebSocket events
+# ---------------------------------------------------------------------------
 
 class BestTouch(BaseModel):
     symbol: str

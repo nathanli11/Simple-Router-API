@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 import time
 from dataclasses import dataclass, field
@@ -11,6 +12,11 @@ from fastapi import WebSocket
 
 from .models import BestTouch, EwmaEvent, KlineEvent, TradeEvent
 
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Structures de données
+# ---------------------------------------------------------------------------
 
 @dataclass
 class Subscription:
@@ -38,26 +44,89 @@ class WSConnection:
     ewma_state: Dict[Tuple[str, str, float], EwmaState] = field(default_factory=dict)
 
     async def send(self, payload: Dict[str, Any]) -> None:
-        """Envoie un message JSON au client."""
-        await self.websocket.send_text(json.dumps(payload))
+        """Envoie un message JSON au client (silencieux si connexion fermee)."""
+        try:
+            await self.websocket.send_text(json.dumps(payload))
+        except Exception:
+            pass  # La connexion sera nettoyée par le gestionnaire principal
 
+
+# ---------------------------------------------------------------------------
+# Validation des souscriptions
+# ---------------------------------------------------------------------------
+
+VALID_STREAMS = {"best_touch", "trades", "klines", "ewma"}
+VALID_EXCHANGES = {"all", "binance", "okx"}
+VALID_INTERVALS = {"1s", "10s", "1m", "5m"}
+
+
+def _validate_subscription(msg: Dict[str, Any]) -> Tuple[bool, str, Optional[Subscription]]:
+    """Valide un message de souscription et retourne (ok, erreur, sub)."""
+    stream = msg.get("stream")
+    symbol = msg.get("symbol")
+    exchange = msg.get("exchange", "all")
+
+    if not stream:
+        return False, "champ 'stream' manquant", None
+    if stream not in VALID_STREAMS:
+        return False, f"stream invalide '{stream}', attendu: {sorted(VALID_STREAMS)}", None
+    if not symbol or not isinstance(symbol, str):
+        return False, "champ 'symbol' manquant ou invalide", None
+    if exchange not in VALID_EXCHANGES:
+        return False, f"exchange invalide '{exchange}', attendu: {sorted(VALID_EXCHANGES)}", None
+
+    interval = msg.get("interval")
+    half_life = msg.get("half_life")
+
+    if stream == "klines":
+        if not interval:
+            return False, "champ 'interval' requis pour le stream klines", None
+        if interval not in VALID_INTERVALS:
+            return False, f"interval invalide '{interval}', attendu: {sorted(VALID_INTERVALS)}", None
+
+    if stream == "ewma":
+        if half_life is None:
+            return False, "champ 'half_life' requis pour le stream ewma", None
+        try:
+            half_life = float(half_life)
+            if half_life <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return False, "half_life doit etre un nombre strictement positif", None
+
+    sub = Subscription(
+        stream=stream,
+        symbol=symbol.upper(),
+        exchange=exchange,
+        interval=interval,
+        half_life=half_life,
+    )
+    return True, "", sub
+
+
+# ---------------------------------------------------------------------------
+# Hub WebSocket
+# ---------------------------------------------------------------------------
 
 class WSHub:
     """Gere les connexions WebSocket et la diffusion."""
+
     def __init__(self) -> None:
         self._connections: List[WSConnection] = []
         self._lock = asyncio.Lock()
 
     async def add(self, conn: WSConnection) -> None:
-        """Enregistre une nouvelle connexion."""
         async with self._lock:
             self._connections.append(conn)
 
     async def remove(self, conn: WSConnection) -> None:
-        """Supprime une connexion."""
         async with self._lock:
             if conn in self._connections:
                 self._connections.remove(conn)
+
+    # ------------------------------------------------------------------
+    # Diffusion best touch
+    # ------------------------------------------------------------------
 
     async def broadcast_best_touch(
         self,
@@ -70,7 +139,6 @@ class WSHub:
         src_bid: Optional[float] = None,
         src_ask: Optional[float] = None,
     ) -> None:
-        """Diffuse les mises a jour best touch en respectant le filtre exchange."""
         agg_msg = {"type": "best_touch", "data": BestTouch(
             symbol=symbol,
             best_bid=best_bid,
@@ -90,24 +158,28 @@ class WSHub:
             conns = list(self._connections)
         for conn in conns:
             for sub in conn.subs:
-                if sub.stream != "best_touch":
-                    continue
-                if sub.symbol != symbol:
+                if sub.stream != "best_touch" or sub.symbol != symbol:
                     continue
                 if sub.exchange == "all":
                     await conn.send(agg_msg)
                 elif sub.exchange == source_exchange and src_msg:
                     await conn.send(src_msg)
 
+    # ------------------------------------------------------------------
+    # Diffusion trades
+    # ------------------------------------------------------------------
+
     async def broadcast_trade(self, symbol: str, exchange: str, price: float, qty: float, ts: float) -> None:
-        """Diffuse les mises a jour des trades."""
         msg = {"type": "trades", "data": TradeEvent(
             symbol=symbol, exchange=exchange, price=price, quantity=qty, timestamp=ts
         ).model_dump()}
         await self._broadcast(msg, "trades", symbol, exchange, None)
 
+    # ------------------------------------------------------------------
+    # Diffusion klines
+    # ------------------------------------------------------------------
+
     async def broadcast_kline(self, symbol: str, exchange: str, interval: int, candle) -> None:
-        """Diffuse les mises a jour de bougies."""
         interval_label = _interval_label(interval)
         msg = {"type": "klines", "data": KlineEvent(
             symbol=symbol,
@@ -123,30 +195,26 @@ class WSHub:
         ).model_dump()}
         await self._broadcast(msg, "klines", symbol, exchange, interval_label, strict_exchange=True)
 
+    # ------------------------------------------------------------------
+    # Mise à jour et diffusion EWMA
+    # ------------------------------------------------------------------
+
     async def update_ewma_on_trade(self, symbol: str, exchange: str, price: float, ts: float) -> None:
-        """Met a jour l'EWMA pour les souscriptions correspondantes."""
         async with self._lock:
-            # Snapshot defensif pour eviter d'iterer sur une liste modifiee en parallele.
             conns = list(self._connections)
         for conn in conns:
             for sub in conn.subs:
-                if sub.stream != "ewma":
-                    continue
-                if sub.symbol != symbol:
-                    continue
-                if sub.exchange != exchange:
+                if sub.stream != "ewma" or sub.symbol != symbol or sub.exchange != exchange:
                     continue
                 if not sub.half_life:
                     continue
                 key = (symbol, sub.exchange, sub.half_life)
                 state = conn.ewma_state.setdefault(key, EwmaState())
                 if state.value is None:
-                    # Premier point de la serie : on initialise l'EWMA au prix courant.
                     state.value = price
                     state.last_ts = ts
                 else:
                     dt = max(0.0, ts - (state.last_ts or ts))
-                    # La demi-vie donnee par le client est convertie en coefficient de lissage.
                     alpha = 1 - math.exp(-math.log(2) * dt / sub.half_life) if sub.half_life > 0 else 1.0
                     state.value = (1 - alpha) * state.value + alpha * price
                     state.last_ts = ts
@@ -159,17 +227,25 @@ class WSHub:
                 ).model_dump()}
                 await conn.send(msg)
 
-    async def _broadcast(self, msg: Dict[str, Any], stream: str, symbol: str,
-                         exchange: Optional[str], interval_label: Optional[str],
-                         *, strict_exchange: bool = False) -> None:
-        """Envoie le message aux souscriptions correspondantes."""
+    # ------------------------------------------------------------------
+    # Utilitaire interne de diffusion
+    # ------------------------------------------------------------------
+
+    async def _broadcast(
+        self,
+        msg: Dict[str, Any],
+        stream: str,
+        symbol: str,
+        exchange: Optional[str],
+        interval_label: Optional[str],
+        *,
+        strict_exchange: bool = False,
+    ) -> None:
         async with self._lock:
             conns = list(self._connections)
         for conn in conns:
             for sub in conn.subs:
-                if sub.stream != stream:
-                    continue
-                if sub.symbol != symbol:
+                if sub.stream != stream or sub.symbol != symbol:
                     continue
                 if strict_exchange:
                     if sub.exchange != exchange:
@@ -186,7 +262,6 @@ WS_HUB = WSHub()
 
 
 def _interval_label(interval: int) -> str:
-    """Convertit les secondes d'intervalle en label (ex: 1m)."""
     if interval >= 60:
         return f"{interval // 60}m"
     return f"{interval}s"
