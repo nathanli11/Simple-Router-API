@@ -19,7 +19,7 @@ SSL_CONTEXT = build_ssl_context()
 
 
 def _okx_symbol(symbol: str) -> str:
-    """Convertit un symbole interne en instrument OKX."""
+    """Convertit un symbole en instrument OKX."""
     if symbol.endswith("USDT"):
         return symbol[:-4] + "-USDT"
     if symbol.endswith("USDC"):
@@ -30,7 +30,7 @@ def _okx_symbol(symbol: str) -> str:
 
 
 async def _listen(symbols: List[str]) -> None:
-    """Ecoute les tickers et trades OKX."""
+    """tickers et trades OKX."""
     args = []
     for sym in symbols:
         inst = _okx_symbol(sym)
@@ -74,5 +74,5 @@ async def _listen(symbols: List[str]) -> None:
 
 
 async def run(symbols: List[str]) -> None:
-    """Demarre l'ecoute OKX pour tous les symboles."""
+    """Demarre  l'OKX pour tous les symboles."""
     await _listen(symbols)

@@ -8,9 +8,9 @@ from .state import Balance, Order, STATE
 from .storage import save_state
 
 
-# ---------------------------------------------------------------------------
-# Utilitaires internes
-# ---------------------------------------------------------------------------
+
+# outils
+
 
 def _get_balance(username: str, asset: str) -> Balance:
     """Retourne (et cree si besoin) un solde."""
@@ -38,7 +38,7 @@ def _reserve_for_order(
 
 
 def _release_reserve(username: str, side: str, symbol: str, reserved: float) -> None:
-    """Libere les fonds reserves dans le disponible."""
+    """Libere les fonds dispo."""
     base, quote = split_symbol(symbol)
     asset = quote if side == "buy" else base
     _get_balance(username, asset).available += reserved
@@ -79,9 +79,8 @@ def _best_touch_price(symbol: str, side: str) -> Optional[float]:
         return max(bids) if bids else None
 
 
-# ---------------------------------------------------------------------------
+
 # API publique
-# ---------------------------------------------------------------------------
 
 async def deposit(username: str, asset: str, amount: float) -> None:
     """Credite un depot sur le compte."""
@@ -171,7 +170,7 @@ async def place_order(
 
 
 async def cancel_order(username: str, token_id: str) -> Tuple[bool, str]:
-    """Annule un ordre ouvert et libere les fonds reserves."""
+    """Annule un ordre ouvert et libere les fonds."""
     async with STATE.lock:
         order = STATE.orders.get(token_id)
         if not order or order.username != username:
@@ -197,11 +196,11 @@ async def modify_order(
     new_quantity: Optional[float],
 ) -> Tuple[bool, Optional[Order], str]:
     """
-    Modifie le prix et/ou la quantite d'un ordre ouvert (bonus PUT /orders).
+    Modifie le prix et/ou la quantite d'un ordre ouvert.
 
-    Les fonds reserves sont recalcules : si la modification necessite plus de
-    fonds, on verifie la disponibilite ; si elle en necessite moins, on libere
-    l'excedent.
+    Les fonds reserves sont recalcules : 
+    - si la modification necessite plus de fonds, on verifie la disponibilite 
+    - si elle en necessite moins, on libere l'excedent.
     """
     if new_price is None and new_quantity is None:
         return False, None, "Au moins un champ (price ou quantity) doit etre fourni"

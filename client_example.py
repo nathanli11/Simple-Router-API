@@ -1,20 +1,3 @@
-"""
-client_example.py – Démonstration complète de l'API Market Data Router.
-
-Couvre :
-  - Inscription / connexion
-  - Dépôt de fonds
-  - Ordres limites (place, status, cancel)
-  - Ordre market (bonus)
-  - Modification d'ordre (PUT, bonus)
-  - Consultation des soldes
-  - WebSocket : best_touch, trades, klines, ewma
-  - Cas d'erreurs (requêtes malformées)
-  - Ping WebSocket
-
-Usage :
-  python3 client_example.py
-"""
 
 import asyncio
 import json
@@ -30,9 +13,7 @@ USERNAME = "demo_user"
 PASSWORD = "demo_pass_123"
 
 
-# ---------------------------------------------------------------------------
 # Authentification
-# ---------------------------------------------------------------------------
 
 def register_or_login() -> str:
     """Inscrit un utilisateur ou fait un login s'il existe déjà."""
@@ -50,20 +31,18 @@ def header(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-# ---------------------------------------------------------------------------
-# Demo REST complète
-# ---------------------------------------------------------------------------
 
+# Demo REST
 def demo_rest(token: str) -> str:
     """Démontre toutes les routes REST et retourne un token_id pour la démo WS."""
     h = header(token)
 
-    # --- Info ---
+    # Info 
     print("\n=== GET /info ===")
     r = requests.get(f"{BASE_URL}/info")
     print(r.status_code, r.json())
 
-    # --- Dépôts ---
+    # Dépôts 
     print("\n=== POST /deposit ===")
     r = requests.post(f"{BASE_URL}/deposit", json={"asset": "USDT", "amount": 50000}, headers=h)
     print("USDT:", r.status_code, r.json())
@@ -72,17 +51,17 @@ def demo_rest(token: str) -> str:
     r = requests.post(f"{BASE_URL}/deposit", json={"asset": "ETH",  "amount": 10},    headers=h)
     print("ETH: ", r.status_code, r.json())
 
-    # --- Actif invalide ---
+    # Actif invalide
     print("\n=== Dépôt actif invalide (doit renvoyer 400) ===")
     r = requests.post(f"{BASE_URL}/deposit", json={"asset": "INVALID", "amount": 100}, headers=h)
     print(r.status_code, r.json())
 
-    # --- Solde initial ---
+    # Solde initial 
     print("\n=== GET /balance ===")
     r = requests.get(f"{BASE_URL}/balance", headers=h)
     print(r.status_code, r.json())
 
-    # --- Ordre limite ---
+    # Ordre limite 
     print("\n=== POST /orders (limit) ===")
     order_id = f"ord-limit-{int(time.time())}"
     r = requests.post(f"{BASE_URL}/orders", json={
@@ -95,37 +74,37 @@ def demo_rest(token: str) -> str:
     }, headers=h)
     print("Ordre limit:", r.status_code, r.json())
 
-    # --- Statut ---
+    # Statut 
     print("\n=== GET /orders/{token_id} ===")
     r = requests.get(f"{BASE_URL}/orders/{order_id}", headers=h)
     print(r.status_code, r.json())
 
-    # --- Modification (bonus PUT) ---
+    #  Modification
     print("\n=== PUT /orders/{token_id} (modifier le prix) ===")
     r = requests.put(f"{BASE_URL}/orders/{order_id}", json={"price": 9500}, headers=h)
     print(r.status_code, r.json())
 
-    # --- Solde après modification (fonds réservés ajustés) ---
+    #  Solde après modification (fonds réservés ajustés)
     print("\n=== /balance après modification ===")
     r = requests.get(f"{BASE_URL}/balance", headers=h)
     print(r.status_code, r.json())
 
-    # --- Annulation ---
+    # Annulation
     print("\n=== DELETE /orders/{token_id} ===")
     r = requests.delete(f"{BASE_URL}/orders/{order_id}", headers=h)
     print(r.status_code, r.json())
 
-    # --- Solde après annulation (fonds libérés) ---
+    # Solde après annulation (fonds libérés) 
     print("\n=== /balance après annulation ===")
     r = requests.get(f"{BASE_URL}/balance", headers=h)
     print(r.status_code, r.json())
 
-    # --- Annulation d'un ordre déjà annulé (doit renvoyer 400) ---
+    # Annulation d'un ordre déjà annulé (doit renvoyer 400)
     print("\n=== Annuler un ordre déjà annulé (doit renvoyer 400) ===")
     r = requests.delete(f"{BASE_URL}/orders/{order_id}", headers=h)
     print(r.status_code, r.json())
 
-    # --- Ordre market (bonus) ---
+    #  Ordre market
     print("\n=== POST /orders (market) ===")
     market_id = f"ord-market-{int(time.time())}"
     r = requests.post(f"{BASE_URL}/orders", json={
@@ -138,7 +117,7 @@ def demo_rest(token: str) -> str:
     }, headers=h)
     print("Ordre market:", r.status_code, r.json())
 
-    # --- Ordre avec solde insuffisant (doit renvoyer 400) ---
+    #  Ordre avec solde insuffisant (doit renvoyer 400) 
     print("\n=== Ordre avec solde insuffisant (doit renvoyer 400) ===")
     r = requests.post(f"{BASE_URL}/orders", json={
         "token_id": f"ord-fail-{int(time.time())}",
@@ -150,7 +129,7 @@ def demo_rest(token: str) -> str:
     }, headers=h)
     print(r.status_code, r.json())
 
-    # --- token_id dupliqué (doit renvoyer 400) ---
+    #  token_id dupliqué (doit renvoyer 400) 
     dup_id = f"ord-dup-{int(time.time())}"
     requests.post(f"{BASE_URL}/orders", json={
         "token_id": dup_id, "symbol": "ETHUSDT",
@@ -172,9 +151,9 @@ def demo_rest(token: str) -> str:
     return ws_order_id
 
 
-# ---------------------------------------------------------------------------
-# Demo WebSocket complète
-# ---------------------------------------------------------------------------
+
+# Demo WebSocket 
+
 
 async def ws_demo(token: str):
     """
@@ -184,42 +163,42 @@ async def ws_demo(token: str):
     """
     async with websockets.connect(WS_URL) as ws:
 
-        # --- Auth ---
+        #  Auth 
         print("\n=== WS auth ===")
         await ws.send(json.dumps({"action": "auth", "token": token}))
         print("auth →", await ws.recv())
 
-        # --- Ping ---
+        #  Ping 
         print("\n=== WS ping ===")
         await ws.send(json.dumps({"action": "ping"}))
         print("ping →", await ws.recv())
 
-        # --- JSON malformé (doit recevoir une erreur, pas crasher) ---
+        #  JSON malformé (doit recevoir une erreur, pas crasher) 
         print("\n=== WS JSON malformé ===")
         await ws.send("ceci n'est pas du JSON{{{")
         print("malformed →", await ws.recv())
 
-        # --- Action inconnue ---
+        #  Action inconnue 
         print("\n=== WS action inconnue ===")
         await ws.send(json.dumps({"action": "teleporter"}))
         print("unknown action →", await ws.recv())
 
-        # --- Subscribe avec stream invalide ---
+        #  Subscribe avec stream invalide 
         print("\n=== WS subscribe stream invalide ===")
         await ws.send(json.dumps({"action": "subscribe", "stream": "nonexistent", "symbol": "BTCUSDT"}))
         print("bad stream →", await ws.recv())
 
-        # --- Subscribe sans symbol ---
+        #  Subscribe sans symbol 
         print("\n=== WS subscribe sans symbol ===")
         await ws.send(json.dumps({"action": "subscribe", "stream": "trades"}))
         print("no symbol →", await ws.recv())
 
-        # --- Unsubscribe sans champs requis ---
+        #  Unsubscribe sans champs requis 
         print("\n=== WS unsubscribe invalide ===")
         await ws.send(json.dumps({"action": "unsubscribe"}))
         print("bad unsubscribe →", await ws.recv())
 
-        # --- Souscriptions valides ---
+        #  Souscriptions valides 
         print("\n=== WS souscriptions valides ===")
         subs = [
             {"action": "subscribe", "stream": "best_touch", "symbol": "BTCUSDT", "exchange": "all"},
@@ -236,7 +215,7 @@ async def ws_demo(token: str):
             await ws.send(json.dumps(s))
             print("sub →", await ws.recv())
 
-        # --- Lecture d'événements de marché ---
+        #  événements de marché 
         print("\n=== WS événements de marché (20 messages) ===")
         received = {"best_touch": 0, "trades": 0, "klines": 0, "ewma": 0}
         for _ in range(20):
@@ -258,9 +237,9 @@ async def ws_demo(token: str):
         print("unsubscribe →", await ws.recv())
 
 
-# ---------------------------------------------------------------------------
+
 # Test d'authentification WS invalide
-# ---------------------------------------------------------------------------
+
 
 async def ws_auth_error_demo():
     """Vérifie que le serveur refuse les tokens invalides proprement."""
@@ -269,11 +248,7 @@ async def ws_auth_error_demo():
         await ws.send(json.dumps({"action": "auth", "token": "fake.token.here"}))
         print("bad token →", await ws.recv())
 
-
-# ---------------------------------------------------------------------------
-# Point d'entrée
-# ---------------------------------------------------------------------------
-
+# Run main
 if __name__ == "__main__":
     print("=" * 60)
     print("Market Data Router – Demo Client")

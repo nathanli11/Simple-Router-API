@@ -14,12 +14,12 @@ st.set_page_config(page_title="Trading API", layout="wide")
 
 st.title("Trading API Interface")
 
-# session state
+# etat de la session
 if "token" not in st.session_state:
     st.session_state.token = None
 
 
-# -------- AUTH --------
+# authentification
 st.sidebar.header("Authentication")
 
 username = st.sidebar.text_input("Username")
@@ -44,7 +44,7 @@ if col_log.button("Login"):
     st.sidebar.write(data)
 
 
-# -------- INFO (auto-load) --------
+#  INFOS (chargement automatique)
 st.header("Market Info")
 
 try:
@@ -71,7 +71,7 @@ except Exception:
 
 st.divider()
 
-# -------- BALANCE --------
+#  SOLDE
 st.header("Account Balance")
 
 if st.button("Get balance"):
@@ -90,7 +90,7 @@ if st.button("Get balance"):
 
 st.divider()
 
-# -------- DEPOSIT --------
+#  DEPOT
 st.header("Deposit Funds")
 
 col1, col2 = st.columns(2)
@@ -112,7 +112,7 @@ if st.button("Deposit"):
 
 st.divider()
 
-# -------- ORDER --------
+#  ORDRE
 st.header("Place Order")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -145,7 +145,7 @@ if st.button("Send Order", type="primary"):
 
 st.divider()
 
-# -------- LIVE MARKET DATA (WebSocket) --------
+#  DONNEES DE MARCHE (WebSocket)
 st.header("Live Market Data")
 
 if st.session_state.token is None:
@@ -173,14 +173,14 @@ else:
         try:
             ws = create_connection(WS_URL, timeout=5)
 
-            # Auth
+            # Authentification
             ws.send(json.dumps({"action": "auth", "token": st.session_state.token}))
             auth_resp = json.loads(ws.recv())
             if auth_resp.get("status") != "ok":
                 st.error(f"WebSocket auth failed: {auth_resp}")
                 ws.close()
             else:
-                # Subscribe to klines, trades, best_touch
+                # S'abonner aux flux klines, trades et best_touch
                 ws.send(
                     json.dumps(
                         {
@@ -213,7 +213,7 @@ else:
                     )
                 )
 
-                # Read subscription confirmations
+                # Lire les confirmations d'abonnement
                 for _ in range(3):
                     ws.recv()
 
@@ -282,7 +282,7 @@ else:
                 ws.close()
                 progress_bar.empty()
 
-                # ---- Display results once ----
+                #  Afficher les resultats une fois
                 st.success(
                     f"Stream ended — {len(klines)} klines, {len(trades)} trades collected in {ws_duration}s."
                 )

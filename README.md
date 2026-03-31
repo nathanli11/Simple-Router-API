@@ -1,9 +1,5 @@
 # Projet API – Market Data Router & Paper Trading
 
-## Prérequis
-- Python 3.10+
-- Accès réseau (WebSocket vers Binance et OKX)
-
 ## Installation
 ```bash
 python3 -m venv .venv
@@ -64,9 +60,6 @@ Streams disponibles:
 python3 client_example.py
 ```
 
-## Persistance
-L’état est enregistré dans `data/state.json` et rechargé au démarrage.
+## Données
+Les data sont enregistrées dans `data/state.json` et rechargées au démarrage.
 
-## Notes
-- Les données de marché proviennent des WebSockets publiques Binance/OKX.
-- Les klines et EWMA sont calculés uniquement à partir des flux WebSocket.

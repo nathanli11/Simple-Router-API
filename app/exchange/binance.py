@@ -30,7 +30,7 @@ def _combined_stream(symbols: List[str], channel: str) -> str:
 
 
 async def _listen_book_ticker(symbols: List[str]) -> None:
-    """Ecoute les mises a jour best bid/ask."""
+    """Mises a jour best bid/ask."""
     url = _combined_stream(symbols, "bookTicker")
     while True:
         try:
@@ -60,7 +60,7 @@ async def _listen_book_ticker(symbols: List[str]) -> None:
 
 
 async def _listen_trades(symbols: List[str]) -> None:
-    """Ecoute les mises a jour des trades."""
+    """Mises a jour des trades."""
     url = _combined_stream(symbols, "trade")
     while True:
         try:

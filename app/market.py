@@ -28,17 +28,17 @@ _KLINES_LOCK = asyncio.Lock()
 
 
 def _now() -> float:
-    """Retourne l'heure courante (secondes)."""
+    """Retourne l'heure courante en secondes."""
     return time.time()
 
 
 def _interval_start(ts: float, interval: int) -> float:
-    """Calcule le debut de bougie pour un timestamp."""
+    """Calcule le debut de bougie"""
     return ts - (ts % interval)
 
 
 async def handle_best_touch(exchange: str, symbol: str, bid: float, ask: float, ts: float) -> None:
-    """Met a jour le best touch et diffuse aux clients."""
+    """Met a jour le best touch et renvoie aux clients."""
     async with STATE.lock:
         per_symbol = STATE.best_touch.setdefault(symbol, {})
         per_symbol[exchange] = MarketState(best_bid=bid, best_ask=ask, exchange=exchange, timestamp=ts)
@@ -48,7 +48,7 @@ async def handle_best_touch(exchange: str, symbol: str, bid: float, ask: float, 
         best_ask = None
         best_ask_exchange = None
         # On agrege ici les cotations recues de chaque exchange pour obtenir
-        # le meilleur bid et le meilleur ask globaux sur le symbole.
+        # le meilleur bid et le meilleur ask globaux sur le ticker.
         for ex, st in per_symbol.items():
             if st.best_bid is not None and (best_bid is None or st.best_bid > best_bid):
                 best_bid = st.best_bid
@@ -57,8 +57,7 @@ async def handle_best_touch(exchange: str, symbol: str, bid: float, ask: float, 
                 best_ask = st.best_ask
                 best_ask_exchange = ex
 
-    # La diffusion WebSocket et la logique d'execution restent hors du lock
-    # pour eviter de bloquer l'etat partage plus longtemps que necessaire.
+    
     await WS_HUB.broadcast_best_touch(
         symbol, best_bid, best_ask, best_bid_exchange, best_ask_exchange,
         source_exchange=exchange, src_bid=bid, src_ask=ask,

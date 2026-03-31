@@ -14,9 +14,8 @@ from .models import BestTouch, EwmaEvent, KlineEvent, TradeEvent
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
+
 # Structures de données
-# ---------------------------------------------------------------------------
 
 @dataclass
 class Subscription:
@@ -48,12 +47,11 @@ class WSConnection:
         try:
             await self.websocket.send_text(json.dumps(payload))
         except Exception:
-            pass  # La connexion sera nettoyée par le gestionnaire principal
+            pass 
 
 
-# ---------------------------------------------------------------------------
+
 # Validation des souscriptions
-# ---------------------------------------------------------------------------
 
 VALID_STREAMS = {"best_touch", "trades", "klines", "ewma"}
 VALID_EXCHANGES = {"all", "binance", "okx"}
@@ -104,9 +102,8 @@ def _validate_subscription(msg: Dict[str, Any]) -> Tuple[bool, str, Optional[Sub
     return True, "", sub
 
 
-# ---------------------------------------------------------------------------
+
 # Hub WebSocket
-# ---------------------------------------------------------------------------
 
 class WSHub:
     """Gere les connexions WebSocket et la diffusion."""
@@ -124,9 +121,9 @@ class WSHub:
             if conn in self._connections:
                 self._connections.remove(conn)
 
-    # ------------------------------------------------------------------
-    # Diffusion best touch
-    # ------------------------------------------------------------------
+
+    # best touch
+
 
     async def broadcast_best_touch(
         self,
@@ -165,9 +162,8 @@ class WSHub:
                 elif sub.exchange == source_exchange and src_msg:
                     await conn.send(src_msg)
 
-    # ------------------------------------------------------------------
-    # Diffusion trades
-    # ------------------------------------------------------------------
+
+    # trades
 
     async def broadcast_trade(self, symbol: str, exchange: str, price: float, qty: float, ts: float) -> None:
         msg = {"type": "trades", "data": TradeEvent(
@@ -175,9 +171,8 @@ class WSHub:
         ).model_dump()}
         await self._broadcast(msg, "trades", symbol, exchange, None)
 
-    # ------------------------------------------------------------------
-    # Diffusion klines
-    # ------------------------------------------------------------------
+
+    # klines
 
     async def broadcast_kline(self, symbol: str, exchange: str, interval: int, candle) -> None:
         interval_label = _interval_label(interval)
@@ -195,9 +190,8 @@ class WSHub:
         ).model_dump()}
         await self._broadcast(msg, "klines", symbol, exchange, interval_label, strict_exchange=True)
 
-    # ------------------------------------------------------------------
-    # Mise à jour et diffusion EWMA
-    # ------------------------------------------------------------------
+
+    # EWMA
 
     async def update_ewma_on_trade(self, symbol: str, exchange: str, price: float, ts: float) -> None:
         async with self._lock:
@@ -227,9 +221,8 @@ class WSHub:
                 ).model_dump()}
                 await conn.send(msg)
 
-    # ------------------------------------------------------------------
-    # Utilitaire interne de diffusion
-    # ------------------------------------------------------------------
+
+    # outil de diffusions
 
     async def _broadcast(
         self,

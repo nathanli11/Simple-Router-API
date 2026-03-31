@@ -32,7 +32,7 @@ SETTINGS = Settings()
 
 
 def build_ssl_context() -> ssl.SSLContext:
-    """Construit le contexte SSL pour les connexions sortantes."""
+    """Construit le SSL pour les connexions sortantes."""
     context = ssl.create_default_context()
     if SETTINGS.allow_insecure_ssl:
         # Reserve au developpement local quand un proxy reseau casse la chaine TLS.

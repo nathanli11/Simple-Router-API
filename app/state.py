@@ -21,7 +21,7 @@ class Order:
     reason: Optional[str] = None
     reserved_amount: float = 0.0
     created_at: float = 0.0
-    order_type: str = "limit"   # "limit" | "market"
+    order_type: str = "limit"   # "limit" ou "market"
 
 
 @dataclass

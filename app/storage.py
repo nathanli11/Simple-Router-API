@@ -19,7 +19,7 @@ def _ensure_dir(path: Path) -> None:
 
 
 async def save_state() -> None:
-    """Persiste utilisateurs, soldes et ordres sur disque."""
+    """Sauvegarde"""
     async with _storage_lock:
         data = {
             "users": {u: {"password_hash": user.password_hash} for u, user in STATE.users.items()},
@@ -52,7 +52,7 @@ async def save_state() -> None:
 
 
 async def load_state() -> None:
-    """Charge utilisateurs, soldes et ordres depuis le disque."""
+    """Chargement."""
     path = _state_path()
     if not path.exists():
         return
@@ -69,7 +69,6 @@ async def load_state() -> None:
 
     STATE.orders = {}
     for tid, o in raw.get("orders", {}).items():
-        # Compatibilite ascendante : order_type absent des anciens fichiers
         o.setdefault("order_type", "limit")
         STATE.orders[tid] = Order(**o)
 

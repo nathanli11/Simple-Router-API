@@ -44,10 +44,8 @@ app = FastAPI(
 security = HTTPBearer()
 
 
-# ---------------------------------------------------------------------------
-# Authentification
-# ---------------------------------------------------------------------------
 
+# Authentification
 async def _get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
@@ -58,9 +56,6 @@ async def _get_current_user(
     return username
 
 
-# ---------------------------------------------------------------------------
-# Cycle de vie
-# ---------------------------------------------------------------------------
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -72,9 +67,8 @@ async def startup() -> None:
     asyncio.create_task(okx.run(list(SETTINGS.symbols)))
 
 
-# ---------------------------------------------------------------------------
+
 # Routes publiques
-# ---------------------------------------------------------------------------
 
 @app.post("/register", response_model=TokenResponse, tags=["Auth"])
 async def register(req: RegisterRequest) -> TokenResponse:
@@ -111,9 +105,8 @@ async def info() -> InfoResponse:
     return InfoResponse(assets=assets, pairs=list(SETTINGS.symbols))
 
 
-# ---------------------------------------------------------------------------
+
 # Routes authentifiees – Paper trading
-# ---------------------------------------------------------------------------
 
 @app.post("/deposit", tags=["Trading"])
 async def do_deposit(
@@ -142,7 +135,7 @@ async def submit_order(
     """Soumet un ordre limite ou market.
 
     - **limit** : conserve l'ordre jusqu'a ce que le prix croise le best touch.
-    - **market** : execute immediatement au meilleur prix disponible (bonus).
+    - **market** : execute immediatement au meilleur prix disponible.
     """
     if req.symbol not in SETTINGS.symbols:
         raise HTTPException(status_code=400, detail="Symbole inconnu")
@@ -183,7 +176,7 @@ async def update_order(
     req: OrderModifyRequest,
     username: str = Depends(_get_current_user),
 ) -> OrderStatusResponse:
-    """Modifie le prix et/ou la quantite d'un ordre ouvert (bonus).
+    """Modifie le prix et/ou la quantite d'un ordre ouvert.
 
     Les fonds reserves sont recalcules automatiquement.
     """
@@ -234,25 +227,24 @@ async def balance(username: str = Depends(_get_current_user)) -> BalanceResponse
     return BalanceResponse(balances=balances)
 
 
-# ---------------------------------------------------------------------------
+
 # WebSocket
-# ---------------------------------------------------------------------------
 
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket) -> None:
     """
     Endpoint WebSocket temps réel.
 
-    **Protocole :**
-    1. Envoyer `{"action": "auth", "token": "<JWT>"}` en premier.
-    2. Envoyer des messages `subscribe` / `unsubscribe`.
+    Protocole :
+    - Envoyer `{"action": "auth", "token": "<JWT>"}` en premier.
+    - Envoyer des messages `subscribe` / `unsubscribe`.
 
-    **Streams disponibles :** `best_touch`, `trades`, `klines`, `ewma`.
+    Streams disponibles : `best_touch`, `trades`, `klines`, `ewma`.
     """
     await websocket.accept()
     conn: WSConnection | None = None
     try:
-        # --- Authentification obligatoire en premier message ---
+        # Authentification obligatoire en premier message 
         try:
             auth_msg = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
         except asyncio.TimeoutError:
@@ -278,14 +270,14 @@ async def ws_endpoint(websocket: WebSocket) -> None:
         await WS_HUB.add(conn)
         await websocket.send_json({"type": "auth", "status": "ok", "username": username})
 
-        # --- Boucle principale des messages ---
+        # Boucle principale des messages
         while True:
             try:
                 raw = await websocket.receive_text()
             except WebSocketDisconnect:
                 break
 
-            # Désérialisation robuste : on répond avec une erreur si le JSON est malformé
+            #  erreur si le JSON est malforme
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -303,7 +295,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
                 if not ok:
                     await conn.send({"type": "error", "message": err})
                     continue
-                # Evite les doublons de souscription identique
+                # Evite les doublons
                 already = any(
                     s.stream == sub.stream
                     and s.symbol == sub.symbol
