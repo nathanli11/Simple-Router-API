@@ -1,0 +1,220 @@
+{
+  "users": {
+    "demo_user": {
+      "password_hash": "SsogUnIOPvnLOeMKulkXGj/lqvfkucA+FFR6DkPh3duwn8xx99JcIykaZCHYxbRG"
+    },
+    "Milos": {
+      "password_hash": "KIEYIxDdfwlIdCL57zAi61jX9/d2yVGcMlVBKzHeu4Bqs+YaWdjwpZ295QLyUuJk"
+    },
+    "milos": {
+      "password_hash": "ZS8NQfuBY298L774SLUOixjTYl+8zVBLi/aSJlIuBLlNdLEgnN+0N6kWkfTejN10"
+    }
+  },
+  "balances": {
+    "demo_user": {
+      "USDT": {
+        "total": 60663.119,
+        "available": 59553.119
+      },
+      "BTC": {
+        "total": 2.99,
+        "available": 2.99
+      },
+      "ETH": {
+        "total": 10.0,
+        "available": 10.0
+      }
+    },
+    "Milos": {
+      "USDT": {
+        "total": 1000.0,
+        "available": 1000.0
+      },
+      "BTC": {
+        "total": 1000.0,
+        "available": 1000.0
+      }
+    },
+    "milos": {
+      "USDT": {
+        "total": 225856.9,
+        "available": 165857.18
+      },
+      "BTC": {
+        "total": 0.0,
+        "available": 0.0
+      },
+      "ETH": {
+        "total": 30.0,
+        "available": 30.0
+      }
+    }
+  },
+  "orders": {
+    "ord-1773739048": {
+      "token_id": "ord-1773739048",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 10000.0,
+      "quantity": 0.1,
+      "status": "cancelled",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 1000.0,
+      "created_at": 1773739048.484268,
+      "order_type": "limit"
+    },
+    "ord-1773739048-2": {
+      "token_id": "ord-1773739048-2",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 10000.0,
+      "quantity": 0.1,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 1000.0,
+      "created_at": 1773739048.5448503,
+      "order_type": "limit"
+    },
+    "ord-1773741601": {
+      "token_id": "ord-1773741601",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 30000.0,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73928.0,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741601.9232454,
+      "order_type": "limit"
+    },
+    "ord-1773741646": {
+      "token_id": "ord-1773741646",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 29999.86,
+      "created_at": 1773741646.5429454,
+      "order_type": "limit"
+    },
+    "ord-1773741789": {
+      "token_id": "ord-1773741789",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 29999.86,
+      "created_at": 1773741789.463731,
+      "order_type": "limit"
+    },
+    "ord-1773741814": {
+      "token_id": "ord-1773741814",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73928.0,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741814.9433558,
+      "order_type": "limit"
+    },
+    "ord-1773741823": {
+      "token_id": "ord-1773741823",
+      "username": "milos",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 29999.86,
+      "quantity": 1.0,
+      "status": "filled",
+      "filled_price": 73950.9,
+      "reason": null,
+      "reserved_amount": 1.0,
+      "created_at": 1773741823.5808265,
+      "order_type": "limit"
+    },
+    "ord-limit-1774697566": {
+      "token_id": "ord-limit-1774697566",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 9500.0,
+      "quantity": 0.5,
+      "status": "cancelled",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 4750.0,
+      "created_at": 1774697566.664971,
+      "order_type": "limit"
+    },
+    "ord-market-1774697566": {
+      "token_id": "ord-market-1774697566",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "sell",
+      "price": 66311.9,
+      "quantity": 0.01,
+      "status": "filled",
+      "filled_price": 66311.9,
+      "reason": null,
+      "reserved_amount": 0.0,
+      "created_at": 1774697566.6804302,
+      "order_type": "market"
+    },
+    "ord-dup-1774697566": {
+      "token_id": "ord-dup-1774697566",
+      "username": "demo_user",
+      "symbol": "ETHUSDT",
+      "side": "buy",
+      "price": 1000.0,
+      "quantity": 0.1,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 100.0,
+      "created_at": 1774697566.683531,
+      "order_type": "limit"
+    },
+    "ord-ws-1774697566": {
+      "token_id": "ord-ws-1774697566",
+      "username": "demo_user",
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "price": 1000.0,
+      "quantity": 0.01,
+      "status": "open",
+      "filled_price": null,
+      "reason": null,
+      "reserved_amount": 10.0,
+      "created_at": 1774697566.686599,
+      "order_type": "limit"
+    }
+  },
+  "open_orders_by_symbol": {
+    "BTCUSDT": [
+      "ord-1773739048-2",
+      "ord-1773741646",
+      "ord-1773741789",
+      "ord-ws-1774697566"
+    ],
+    "ETHUSDT": [
+      "ord-dup-1774697566"
+    ]
+  }
+}
